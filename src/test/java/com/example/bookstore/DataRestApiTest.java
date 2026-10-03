@@ -2,21 +2,29 @@ package com.example.bookstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(username = "admin", roles = "ADMIN")
 class DataRestApiTest {
     @Autowired private MockMvc mvc;
     @Autowired private BookRepository books;
@@ -65,7 +73,7 @@ class DataRestApiTest {
                 {"title":"New book","author":"Student","isbn":"api-002","publicationYear":2026,
                  "category":"http://localhost/api/categories/%d"}
                 """.formatted(categoryId);
-        mvc.perform(post("/api/books").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/books").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .accept("application/hal+json").content(json))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
@@ -76,7 +84,7 @@ class DataRestApiTest {
 
     @Test
     void canPatchBook() throws Exception {
-        mvc.perform(patch("/api/books/{id}", bookId).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(patch("/api/books/{id}", bookId).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .accept("application/hal+json").content("{\"title\":\"Changed title\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Changed title"));
@@ -89,7 +97,7 @@ class DataRestApiTest {
                 {"title":"Replacement","author":"Student","isbn":"api-003","publicationYear":2025,
                  "category":"http://localhost/api/categories/%d"}
                 """.formatted(categoryId);
-        mvc.perform(put("/api/books/{id}", bookId).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/books/{id}", bookId).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .accept("application/hal+json").content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Replacement"));
@@ -97,7 +105,7 @@ class DataRestApiTest {
 
     @Test
     void deletesOnlySelectedBook() throws Exception {
-        mvc.perform(delete("/api/books/{id}", bookId)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/books/{id}", bookId).with(csrf())).andExpect(status().isNoContent());
         mvc.perform(get("/api/books/{id}", bookId)).andExpect(status().isNotFound());
         assertThat(categories.existsById(categoryId)).isTrue();
     }
@@ -109,7 +117,7 @@ class DataRestApiTest {
 
     @Test
     void deleteWithBrowserAcceptHeaderCanReturn200() throws Exception {
-        mvc.perform(delete("/api/books/{id}", bookId).accept("*/*"))
+        mvc.perform(delete("/api/books/{id}", bookId).with(csrf()).accept("*/*"))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/books/{id}", bookId)).andExpect(status().isNotFound());
     }

@@ -1,24 +1,26 @@
 package com.example.bookstore;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import static org.hamcrest.Matchers.containsString;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.web.server.ResponseStatusException;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(username = "admin", roles = "ADMIN")
 class BookControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -41,13 +43,13 @@ class BookControllerTest {
     }
 
     @Test
-    void editLinkAppearsAfterDeleteLinkAsRequiredByTheExercise() throws Exception {
+    void editLinkAppearsAfterSafeDeleteButton() throws Exception {
         MvcResult result = mockMvc.perform(get("/booklist"))
                 .andExpect(status().isOk())
                 .andReturn();
 
         String html = result.getResponse().getContentAsString();
-        assertThat(html.indexOf(">Delete</a>"))
+        assertThat(html.indexOf(">Delete</button>"))
                 .isGreaterThanOrEqualTo(0)
                 .isLessThan(html.indexOf(">Edit</a>"));
     }
@@ -74,7 +76,7 @@ class BookControllerTest {
     void saveRedirectsAndNewBookAppearsInList() throws Exception {
         Category category = categoryRepository.findAll().iterator().next();
 
-        mockMvc.perform(post("/save")
+        mockMvc.perform(post("/save").with(csrf())
                         .param("title", "Domain-Driven Design")
                         .param("author", "Eric Evans")
                         .param("isbn", "9780321125217")
@@ -93,7 +95,7 @@ class BookControllerTest {
         Book protectedBook = bookRepository.save(new Book(
                 null, "Protected title", "Original author", "protected-isbn", 1999));
 
-        mockMvc.perform(post("/save")
+        mockMvc.perform(post("/save").with(csrf())
                         .param("id", protectedBook.getId().toString())
                         .param("title", "New independent book")
                         .param("author", "New author")
@@ -116,7 +118,7 @@ class BookControllerTest {
         Book book = bookRepository.save(new Book(
                 null, "Before edit", "Before author", "before-isbn", 2001));
 
-        mockMvc.perform(post("/save/{id}", book.getId())
+        mockMvc.perform(post("/save/{id}", book.getId()).with(csrf())
                         .param("title", "After edit")
                         .param("author", "After author")
                         .param("isbn", "after-isbn")
@@ -137,7 +139,7 @@ class BookControllerTest {
     void postEditForUnknownBookReturnsTheControllerNotFoundError() throws Exception {
         Category category = categoryRepository.findAll().iterator().next();
 
-        mockMvc.perform(post("/save/999999")
+        mockMvc.perform(post("/save/999999").with(csrf())
                         .param("title", "Missing")
                         .param("author", "Nobody")
                         .param("isbn", "missing-isbn")
@@ -158,7 +160,7 @@ class BookControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Working Effectively with Legacy Code")));
 
-        mockMvc.perform(get("/delete/{id}", book.getId()))
+        mockMvc.perform(post("/delete/{id}", book.getId()).with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/booklist"));
 
@@ -169,7 +171,7 @@ class BookControllerTest {
     void unknownBookIdsReturnNotFound() throws Exception {
         mockMvc.perform(get("/edit/999999"))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/delete/999999"))
+        mockMvc.perform(post("/delete/999999").with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
@@ -186,7 +188,7 @@ class BookControllerTest {
     void savedBookShowsSelectedCategory() throws Exception {
         Category category = categoryRepository.findAll().iterator().next();
 
-        mockMvc.perform(post("/save")
+        mockMvc.perform(post("/save").with(csrf())
                         .param("title", "Refactoring")
                         .param("author", "Martin Fowler")
                         .param("isbn", "9780134757599")
@@ -201,7 +203,7 @@ class BookControllerTest {
 
     @Test
     void unknownCategoryReturnsNotFound() throws Exception {
-        mockMvc.perform(post("/save")
+        mockMvc.perform(post("/save").with(csrf())
                         .param("title", "Rejected")
                         .param("author", "Nobody")
                         .param("isbn", "000")

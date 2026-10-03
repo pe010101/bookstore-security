@@ -20,6 +20,16 @@ public class BookController {
         this.categoryRepository = categoryRepository;
     }
 
+    @GetMapping("/")
+    public String home() {
+        return "redirect:/booklist";
+    }
+
+    @GetMapping("/login")
+    public String login() {
+        return "login";
+    }
+
     @GetMapping("/booklist")
     public String bookList(Model model) {
         model.addAttribute("books", bookRepository.findAll());
@@ -60,7 +70,7 @@ public class BookController {
         return "addbook";
     }
 
-    @GetMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public String deleteBook(@PathVariable Long id) {
         bookRepository.delete(requiredBook(id));
         return "redirect:/booklist";

@@ -1,9 +1,9 @@
 package com.example.bookstore;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -14,12 +14,12 @@ class BookstoreApplicationTests {
     }
 
     @Test
-    void defaultProfileConfiguresH2SqlLoggingAndConsole() throws Exception {
+    void defaultProfileConfiguresH2SqlLoggingButDisablesUnprotectedConsole() throws Exception {
         String properties = Files.readString(Path.of("src/main/resources/application.properties"));
 
         assertThat(properties).contains("spring.datasource.url=jdbc:h2:mem:bookstore");
         assertThat(properties).contains("spring.jpa.show-sql=true");
-        assertThat(properties).contains("spring.h2.console.enabled=true");
+        assertThat(properties).contains("spring.h2.console.enabled=false");
     }
 
     @Test
