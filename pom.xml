@@ -11,10 +11,10 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>bookstore-security-inmemory</artifactId>
+    <artifactId>bookstore-security-database</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>bookstore-security-inmemory</name>
-    <description>Bookstore Chapter 6.1: form login and in-memory users</description>
+    <name>bookstore-security-database</name>
+    <description>Bookstore Chapter 6.2: database users and BCrypt</description>
 
     <properties>
         <java.version>17</java.version>
